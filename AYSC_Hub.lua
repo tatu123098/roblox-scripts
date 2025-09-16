@@ -1,4 +1,4 @@
--- AYSC Hub Simplificado (Sem Fly)
+-- AYSC_Hub Simplificado (Sem Fly)
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
