@@ -1,8 +1,15 @@
--- AYSC Hub Full Fly 3D
+-- AYSC Hub Ultimate
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
+
+-- Valores padrão
+local defaultWalk, defaultJump = 16, 50
+local flyEnabled, flySpeed = false, 50
+local spinEnabled, infinityJumpEnabled = false, false
+local selectedPlayers = {}
+local flyDirection = Vector3.new(0,0,0)
 
 -- Funções utilitárias
 local function getHumanoid()
@@ -14,13 +21,6 @@ local function getRoot()
     return char:WaitForChild("HumanoidRootPart")
 end
 
--- Valores padrão
-local defaultWalk, defaultJump = 16, 50
-local flyEnabled, flySpeed = false, 50
-local flyInput = {W=false,S=false,A=false,D=false,Up=false,Down=false}
-local spinEnabled, infinityJumpEnabled = false, false
-local selectedPlayers = {}
-
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
@@ -30,7 +30,7 @@ ScreenGui.ResetOnSpawn = false
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0,50,0,50)
 toggleBtn.Position = UDim2.new(0,20,0,20)
-toggleBtn.Text = "67"
+toggleBtn.Text = "AYSC"
 toggleBtn.TextScaled = true
 toggleBtn.BackgroundColor3 = Color3.fromRGB(0,150,200)
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
@@ -43,7 +43,7 @@ local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Size = UDim2.new(0,320,0,500)
 ScrollFrame.Position = UDim2.new(0,20,0,80)
 ScrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-ScrollFrame.CanvasSize = UDim2.new(0,0,5,0) 
+ScrollFrame.CanvasSize = UDim2.new(0,0,0,0)
 ScrollFrame.ScrollBarThickness = 10
 ScrollFrame.Visible = false
 ScrollFrame.Parent = ScreenGui
@@ -57,7 +57,7 @@ UIListLayout.Parent = ScrollFrame
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0,5)
 
--- Funções criar botão/TextBox
+-- Função criar botão/TextBox
 local function CreateBtn(text,color,parent)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0,260,0,35)
@@ -129,28 +129,6 @@ SetFlySpeedBtn.MouseButton1Click:Connect(function()
     if val then flySpeed = val end
 end)
 
--- Detecta input para fly
-UIS.InputBegan:Connect(function(input, gp)
-    if not gp then
-        if input.KeyCode == Enum.KeyCode.W then flyInput.W=true end
-        if input.KeyCode == Enum.KeyCode.S then flyInput.S=true end
-        if input.KeyCode == Enum.KeyCode.A then flyInput.A=true end
-        if input.KeyCode == Enum.KeyCode.D then flyInput.D=true end
-        if input.KeyCode == Enum.KeyCode.Space then flyInput.Up=true end
-        if input.KeyCode == Enum.KeyCode.LeftControl then flyInput.Down=true end
-    end
-end)
-UIS.InputEnded:Connect(function(input, gp)
-    if not gp then
-        if input.KeyCode == Enum.KeyCode.W then flyInput.W=false end
-        if input.KeyCode == Enum.KeyCode.S then flyInput.S=false end
-        if input.KeyCode == Enum.KeyCode.A then flyInput.A=false end
-        if input.KeyCode == Enum.KeyCode.D then flyInput.D=false end
-        if input.KeyCode == Enum.KeyCode.Space then flyInput.Up=false end
-        if input.KeyCode == Enum.KeyCode.LeftControl then flyInput.Down=false end
-    end
-end)
-
 -- Player List
 local PlayerList = Instance.new("ScrollingFrame")
 PlayerList.Size = UDim2.new(0,260,0,150)
@@ -163,10 +141,12 @@ UIListLayout2.SortOrder = Enum.SortOrder.LayoutOrder
 
 local function refreshPlayerList()
     PlayerList:ClearAllChildren()
+    local y = 0
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1,0,0,30)
+            btn.Position = UDim2.new(0,0,0,y)
             btn.Text = p.Name
             btn.TextScaled = true
             btn.BackgroundColor3 = selectedPlayers[p] and Color3.fromRGB(0,150,0) or Color3.fromRGB(80,80,80)
@@ -181,9 +161,10 @@ local function refreshPlayerList()
                     btn.BackgroundColor3 = Color3.fromRGB(0,150,0)
                 end
             end)
+            y = y + 35
         end
     end
-    PlayerList.CanvasSize = UDim2.new(0,0,#Players:GetPlayers()*35,0)
+    PlayerList.CanvasSize = UDim2.new(0,0,y)
 end
 refreshPlayerList()
 Players.PlayerAdded:Connect(refreshPlayerList)
@@ -206,30 +187,36 @@ player.CharacterAdded:Connect(function(char)
     root = getRoot()
 end)
 
+-- Fly Input (WASD + Space/CTRL)
+local flyKeys = {W=false,S=false,A=false,D=false,Up=false,Down=false}
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
+    if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
+    if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
+    if input.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then flyKeys.Up = true end
+    if input.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = true end
+end)
+UIS.InputEnded:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
+    if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
+    if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
+    if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then flyKeys.Up = false end
+    if input.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = false end
+end)
+
 -- Loop principal
+local flyBV
 RunService.RenderStepped:Connect(function()
     local root = getRoot()
     local humanoid = getHumanoid()
     
-    -- Fly full
-    if flyEnabled and root then
-        local cam = workspace.CurrentCamera
-        local dir = Vector3.new(0,0,0)
-        if flyInput.W then dir = dir + cam.CFrame.LookVector end
-        if flyInput.S then dir = dir - cam.CFrame.LookVector end
-        if flyInput.A then dir = dir - cam.CFrame.RightVector end
-        if flyInput.D then dir = dir + cam.CFrame.RightVector end
-        if flyInput.Up then dir = dir + Vector3.new(0,1,0) end
-        if flyInput.Down then dir = dir - Vector3.new(0,1,0) end
-        if dir.Magnitude > 0 then
-            dir = dir.Unit * flySpeed
-            local bv = Instance.new("BodyVelocity")
-            bv.Velocity = dir
-            bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-            bv.Parent = root
-            RunService.RenderStepped:Wait()
-            bv:Destroy()
-        end
+    -- Infinity Jump
+    if infinityJumpEnabled and humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+        humanoid.Jump = true
     end
     
     -- Spin
@@ -237,8 +224,29 @@ RunService.RenderStepped:Connect(function()
         root.CFrame = root.CFrame * CFrame.Angles(0,math.rad(10),0)
     end
     
-    -- Infinity Jump
-    if infinityJumpEnabled and humanoid then
-        humanoid.Jump = true
+    -- Fly 3D
+    if flyEnabled and root then
+        local cam = workspace.CurrentCamera
+        local dir = Vector3.new(0,0,0)
+        if flyKeys.W then dir = dir + cam.CFrame.LookVector end
+        if flyKeys.S then dir = dir - cam.CFrame.LookVector end
+        if flyKeys.A then dir = dir - cam.CFrame.RightVector end
+        if flyKeys.D then dir = dir + cam.CFrame.RightVector end
+        if flyKeys.Up then dir = dir + Vector3.new(0,1,0) end
+        if flyKeys.Down then dir = dir - Vector3.new(0,1,0) end
+        if dir.Magnitude > 0 then
+            dir = dir.Unit * flySpeed
+            if not flyBV then
+                flyBV = Instance.new("BodyVelocity")
+                flyBV.MaxForce = Vector3.new(1e5,1e5,1e5)
+                flyBV.Parent = root
+            end
+            flyBV.Velocity = dir
+        elseif flyBV then
+            flyBV.Velocity = Vector3.new(0,0,0)
+        end
+    elseif flyBV then
+        flyBV:Destroy()
+        flyBV = nil
     end
 end)
