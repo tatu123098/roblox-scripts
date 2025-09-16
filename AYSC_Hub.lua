@@ -1,10 +1,10 @@
--- AYSC Hub Full Mobile & Minimal
+-- AYSC Hub Final Funcional
 local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
--- Variáveis do personagem
+-- Funções utilitárias
 local function getHumanoid()
     local char = player.Character or player.CharacterAdded:Wait()
     return char:WaitForChild("Humanoid")
@@ -13,12 +13,9 @@ local function getRoot()
     local char = player.Character or player.CharacterAdded:Wait()
     return char:WaitForChild("HumanoidRootPart")
 end
-local humanoid = getHumanoid()
-local root = getRoot()
 
 -- Valores padrão
-local defaultWalk = 16
-local defaultJumpPower = 50
+local defaultWalk, defaultJump = 16, 50
 local flyEnabled, flySpeed = false, 50
 local flyDirection = Vector3.new(0,0,0)
 local spinEnabled, infinityJumpEnabled = false, false
@@ -27,6 +24,7 @@ local selectedPlayers = {}
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
 -- Bolinha toggle
 local toggleBtn = Instance.new("TextButton")
@@ -37,6 +35,8 @@ toggleBtn.TextScaled = true
 toggleBtn.BackgroundColor3 = Color3.fromRGB(0,150,200)
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 toggleBtn.Parent = ScreenGui
+toggleBtn.Active = true
+toggleBtn.Draggable = true
 
 -- Frame principal
 local Frame = Instance.new("Frame")
@@ -50,7 +50,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     Frame.Visible = not Frame.Visible
 end)
 
--- Função para criar TextBox sem placeholder fixo
+-- Cria TextBox genérica
 local function CreateBox(text,posY)
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(0,120,0,35)
@@ -65,7 +65,7 @@ local function CreateBox(text,posY)
     return box
 end
 
--- Speed & Jump
+-- Speed / Jump
 local WalkBox = CreateBox("WalkSpeed",20)
 local JumpBox = CreateBox("JumpPower",60)
 local SetBtn = Instance.new("TextButton")
@@ -77,6 +77,7 @@ SetBtn.TextColor3 = Color3.fromRGB(255,255,255)
 SetBtn.TextScaled = true
 SetBtn.Parent = Frame
 SetBtn.MouseButton1Click:Connect(function()
+    local humanoid = getHumanoid()
     local w = tonumber(WalkBox.Text)
     local j = tonumber(JumpBox.Text)
     if w then humanoid.WalkSpeed = w end
@@ -93,8 +94,9 @@ DefaultBtn.TextColor3 = Color3.fromRGB(255,255,255)
 DefaultBtn.TextScaled = true
 DefaultBtn.Parent = Frame
 DefaultBtn.MouseButton1Click:Connect(function()
+    local humanoid = getHumanoid()
     humanoid.WalkSpeed = defaultWalk
-    humanoid.JumpPower = defaultJumpPower
+    humanoid.JumpPower = defaultJump
 end)
 
 -- Infinity Jump
@@ -125,7 +127,7 @@ SpinBtn.MouseButton1Click:Connect(function()
     SpinBtn.Text = "Spin: "..(spinEnabled and "ON" or "OFF")
 end)
 
--- Fly ON/OFF
+-- Fly
 local FlyBtn = Instance.new("TextButton")
 FlyBtn.Size = UDim2.new(0,260,0,35)
 FlyBtn.Position = UDim2.new(0,20,0,220)
@@ -153,7 +155,7 @@ SetFlySpeedBtn.MouseButton1Click:Connect(function()
     if val then flySpeed = val end
 end)
 
--- Fly touch buttons
+-- Fly Touch Buttons
 local FlyUpBtn = Instance.new("TextButton")
 FlyUpBtn.Size = UDim2.new(0,100,0,35)
 FlyUpBtn.Position = UDim2.new(0,20,0,305)
@@ -162,8 +164,8 @@ FlyUpBtn.TextScaled = true
 FlyUpBtn.BackgroundColor3 = Color3.fromRGB(0,200,0)
 FlyUpBtn.TextColor3 = Color3.fromRGB(255,255,255)
 FlyUpBtn.Parent = Frame
-FlyUpBtn.MouseButton1Down:Connect(function() if flyEnabled then flyDirection=Vector3.new(0,1,0) end end)
-FlyUpBtn.MouseButton1Up:Connect(function() if flyEnabled then flyDirection=Vector3.new(0,0,0) end end)
+FlyUpBtn.MouseButton1Down:Connect(function() if flyEnabled then flyDirection = Vector3.new(0,1,0) end end)
+FlyUpBtn.MouseButton1Up:Connect(function() if flyEnabled then flyDirection = Vector3.new(0,0,0) end end)
 
 local FlyDownBtn = Instance.new("TextButton")
 FlyDownBtn.Size = UDim2.new(0,100,0,35)
@@ -173,10 +175,10 @@ FlyDownBtn.TextScaled = true
 FlyDownBtn.BackgroundColor3 = Color3.fromRGB(200,0,0)
 FlyDownBtn.TextColor3 = Color3.fromRGB(255,255,255)
 FlyDownBtn.Parent = Frame
-FlyDownBtn.MouseButton1Down:Connect(function() if flyEnabled then flyDirection=Vector3.new(0,-1,0) end end)
-FlyDownBtn.MouseButton1Up:Connect(function() if flyEnabled then flyDirection=Vector3.new(0,0,0) end end)
+FlyDownBtn.MouseButton1Down:Connect(function() if flyEnabled then flyDirection = Vector3.new(0,-1,0) end end)
+FlyDownBtn.MouseButton1Up:Connect(function() if flyEnabled then flyDirection = Vector3.new(0,0,0) end end)
 
--- Player List + Teleport
+-- Player list
 local PlayerList = Instance.new("ScrollingFrame")
 PlayerList.Size = UDim2.new(0,260,0,80)
 PlayerList.Position = UDim2.new(0,20,0,350)
@@ -225,6 +227,7 @@ TPBtn.TextColor3 = Color3.fromRGB(255,255,255)
 TPBtn.TextScaled = true
 TPBtn.Parent = Frame
 TPBtn.MouseButton1Click:Connect(function()
+    local root = getRoot()
     for p,_ in pairs(selectedPlayers) do
         if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             root.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,5,0)
@@ -232,10 +235,21 @@ TPBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Reconectar quando o personagem reseta
+player.CharacterAdded:Connect(function(char)
+    humanoid = getHumanoid()
+    root = getRoot()
+end)
+
 -- Loop principal
 RunService.RenderStepped:Connect(function()
     if flyEnabled and root then
-        root.Velocity = flyDirection * flySpeed
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = flyDirection * flySpeed
+        bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bv.Parent = root
+        RunService.RenderStepped:Wait()
+        bv:Destroy()
     end
     if spinEnabled and root then
         root.CFrame = root.CFrame * CFrame.Angles(0,math.rad(10),0)
