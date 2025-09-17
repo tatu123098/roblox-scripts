@@ -1,5 +1,5 @@
--- AYSC_Hub2.0
--- by Arthur
+--AYSC_Hub2.0
+--by Arthur
 
 -- Services
 local Players = game:GetService("Players")
