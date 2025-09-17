@@ -1,25 +1,28 @@
--- AYSC_Hub2.1 Mobile Ready
+-- AYSC_Hub2.2 Mobile + Respawn Ready
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local LP = Players.LocalPlayer
 
--- Função pra pegar HumanoidRootPart
+-- Função pegar HumanoidRootPart
 local function getHRP()
-    return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+	return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+end
+local function getHumanoid()
+	return LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
 end
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "AYSC_Hub2.1"
+gui.Name = "AYSC_Hub2.2"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
 -- Bolinha flutuante
 local ball = Instance.new("TextButton")
-ball.Size = UDim2.new(0,60,0,60)
+ball.Size = UDim2.new(0,50,0,50)
 ball.Position = UDim2.new(0.05,0,0.3,0)
-ball.Text = "🥭"
+ball.Text = "👍"
 ball.TextScaled = true
 ball.BackgroundColor3 = Color3.fromRGB(0,255,0)
 ball.TextColor3 = Color3.fromRGB(0,0,0)
@@ -35,7 +38,7 @@ main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 main.Visible = false
 main.Parent = gui
 
--- ScrollingFrame pra mobile
+-- ScrollingFrame
 local scroll = Instance.new("ScrollingFrame")
 scroll.Size = UDim2.new(1,0,1,0)
 scroll.CanvasSize = UDim2.new(0,0,0,0)
@@ -47,7 +50,6 @@ local layout = Instance.new("UIListLayout")
 layout.Parent = scroll
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0,5)
-
 layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
 	scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 end)
@@ -56,7 +58,7 @@ ball.MouseButton1Click:Connect(function()
 	main.Visible = not main.Visible
 end)
 
--- Função pra criar TextBox + Botão
+-- Função criar TextBox + Botão
 local function createBox(name,callback)
 	local box = Instance.new("TextBox")
 	box.Size = UDim2.new(0.6,0,0,35)
@@ -64,10 +66,12 @@ local function createBox(name,callback)
 	box.Text = ""
 	box.BackgroundColor3 = Color3.fromRGB(0,255,0)
 	box.TextColor3 = Color3.fromRGB(0,0,0)
+	box.ClearTextOnFocus = false
 	box.Parent = scroll
 
 	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(0.35,0,0,35)
+	btn.Position = UDim2.new(0.65,0,0,0)
 	btn.Text = "Set"
 	btn.BackgroundColor3 = Color3.fromRGB(0,255,0)
 	btn.TextColor3 = Color3.fromRGB(0,0,0)
@@ -80,17 +84,19 @@ local function createBox(name,callback)
 end
 
 -- WalkSpeed
+local walkSpeedVal = 16
 createBox("WalkSpeed", function(val)
-	if LP.Character then
-		LP.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = val
-	end
+	walkSpeedVal = val
+	local hum = getHumanoid()
+	if hum then hum.WalkSpeed = val end
 end)
 
 -- JumpPower
+local jumpPowerVal = 50
 createBox("JumpBoost", function(val)
-	if LP.Character then
-		LP.Character:FindFirstChildOfClass("Humanoid").JumpPower = val
-	end
+	jumpPowerVal = val
+	local hum = getHumanoid()
+	if hum then hum.JumpPower = val end
 end)
 
 -- Spin toggle
@@ -105,7 +111,7 @@ spinBtn.MouseButton1Click:Connect(function()
 	spinBtn.Text = "Spin: "..(spinning and "ON" or "OFF")
 end)
 
--- Infinity Jump toggle
+-- Infinity Jump
 local infJump = false
 local ijBtn = Instance.new("TextButton",scroll)
 ijBtn.Size = UDim2.new(1,0,0,35)
@@ -118,8 +124,8 @@ ijBtn.MouseButton1Click:Connect(function()
 end)
 
 UIS.JumpRequest:Connect(function()
-	if infJump and LP.Character then
-		local hum = LP.Character:FindFirstChildOfClass("Humanoid")
+	if infJump then
+		local hum = getHumanoid()
 		if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 	end
 end)
@@ -151,7 +157,6 @@ local function refreshPlayers()
 					HRP.CFrame = plr.Character.HumanoidRootPart.CFrame + Vector3.new(2,0,0)
 				end
 			end)
-			btn.Parent = scroll
 		end
 	end
 end
@@ -159,7 +164,7 @@ refreshPlayers()
 Players.PlayerAdded:Connect(refreshPlayers)
 Players.PlayerRemoving:Connect(refreshPlayers)
 
--- Fly toggle
+-- Fly
 local flying = false
 local flySpeed = 25
 local bodyVel
@@ -172,17 +177,23 @@ flyBtn.TextColor3 = Color3.fromRGB(0,0,0)
 flyBtn.MouseButton1Click:Connect(function()
 	flying = not flying
 	flyBtn.Text = "Fly: "..(flying and "ON" or "OFF")
-	if flying and getHRP() then
-		bodyVel = Instance.new("BodyVelocity", getHRP())
+	local HRP = getHRP()
+	if flying and HRP then
+		bodyVel = Instance.new("BodyVelocity",HRP)
 		bodyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
 	else
 		if bodyVel then bodyVel:Destroy() end
 	end
 end)
 
--- Fly loop
+-- Loop principal
 RS.RenderStepped:Connect(function()
 	local HRP = getHRP()
+	local hum = getHumanoid()
+	if hum then
+		hum.WalkSpeed = walkSpeedVal
+		hum.JumpPower = jumpPowerVal
+	end
 	if flying and HRP and bodyVel then
 		local move = Vector3.new()
 		if UIS:IsKeyDown(Enum.KeyCode.W) then move = move + HRP.CFrame.LookVector end
