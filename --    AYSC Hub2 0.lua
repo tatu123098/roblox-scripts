@@ -1,10 +1,9 @@
--- AYSC_Hub2.2 Mobile + Respawn Ready
+-- AYSC_Hub2.3 Mobile + JumpBoost + Scroll Fix
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local LP = Players.LocalPlayer
 
--- Função pegar HumanoidRootPart
 local function getHRP()
 	return LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 end
@@ -14,15 +13,15 @@ end
 
 -- GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "AYSC_Hub2.2"
+gui.Name = "AYSC_Hub2.3"
 gui.ResetOnSpawn = false
 gui.Parent = game.CoreGui
 
 -- Bolinha flutuante
 local ball = Instance.new("TextButton")
-ball.Size = UDim2.new(0,50,0,50)
+ball.Size = UDim2.new(0,40,0,40)
 ball.Position = UDim2.new(0.05,0,0.3,0)
-ball.Text = "👍"
+ball.Text = "📍"
 ball.TextScaled = true
 ball.BackgroundColor3 = Color3.fromRGB(0,255,0)
 ball.TextColor3 = Color3.fromRGB(0,0,0)
@@ -91,12 +90,15 @@ createBox("WalkSpeed", function(val)
 	if hum then hum.WalkSpeed = val end
 end)
 
--- JumpPower
+-- JumpBoost
 local jumpPowerVal = 50
 createBox("JumpBoost", function(val)
 	jumpPowerVal = val
 	local hum = getHumanoid()
-	if hum then hum.JumpPower = val end
+	if hum then
+		hum.UseJumpPower = true
+		hum.JumpPower = val
+	end
 end)
 
 -- Spin toggle
@@ -186,12 +188,12 @@ flyBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Loop principal
 RS.RenderStepped:Connect(function()
 	local HRP = getHRP()
 	local hum = getHumanoid()
 	if hum then
 		hum.WalkSpeed = walkSpeedVal
+		hum.UseJumpPower = true
 		hum.JumpPower = jumpPowerVal
 	end
 	if flying and HRP and bodyVel then
